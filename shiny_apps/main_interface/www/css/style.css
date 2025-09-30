@@ -1,0 +1,224 @@
+/* -----------------------------
+   General Body & Fonts
+----------------------------- */
+body {
+    font-family: "Arial", sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+/* -----------------------------
+   Sidebar Styling
+----------------------------- */
+.sidebar {
+    background-color: #fafafa;
+    padding: 15px;
+    border-right: 1px solid #ddd;
+}
+
+/* Adjust width in narrow sidebar layouts */
+.sidebar .shiny-input-container {
+    width: 100%;
+}
+
+/* -----------------------------
+   Headers & Paragraphs
+----------------------------- */
+h4 {
+    color: #2c3e50;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+p {
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+/* -----------------------------
+   Download Buttons
+----------------------------- */
+.shiny-download-link {
+    width: 100% !important; /* force to fit sidebar */
+    white-space: normal !important; /* allow text wrap */
+    font-size: 12px;
+    margin-bottom: 5px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    text-align: center;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.shiny-download-link:hover {
+    background-color: #2980b9;
+    color: white;
+    text-decoration: none;
+}
+
+/* -----------------------------
+   Table Styling
+----------------------------- */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 6px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+/* -----------------------------
+   FluidRow / Column Spacing
+----------------------------- */
+.col-6 {
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+/* -----------------------------
+   Reactive Outputs
+----------------------------- */
+#data_summary {
+    font-size: 13px;
+    background-color: #ffffff;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* -----------------------------
+   Miscellaneous
+----------------------------- */
+br {
+    line-height: 5px;
+}
+
+/* -----------------------------
+   Modal Cards
+----------------------------- */
+.shiny-modal .card {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  position: relative;
+}
+
+/* Add a thin separator line between cards */
+.shiny-modal .card + .card::before {
+  content: "";
+  display: block;
+  height: 1px;
+  background-color: #ccc;
+  margin: -8px 0 8px 0;
+}
+
+/* Card headers */
+.shiny-modal .card-header {
+  font-weight: bold;
+  background-color: #2FA4E7; /* Cerulean header */
+  color: white;
+  padding: 8px 12px;
+  border-bottom: 1px solid #007bb5;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+/* Card body */
+.shiny-modal .card-body {
+  padding: 10px;
+  background-color: #fefefe;
+}
+
+/* "No files uploaded" greyed out */
+.shiny-modal .card-body span,
+.shiny-modal .card-body div {
+  color: #888;
+  font-style: italic;
+}
+
+/* Modal dialog */
+.modal-dialog {
+  max-width: 90% !important;
+}
+
+/* Constrain modal body */
+.modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Preview table */
+.preview-table {
+  max-height: 250px;
+  overflow-y: auto;
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  padding: 5px;
+  background-color: #fff;
+  margin-bottom: 15px;
+}
+
+.preview-table table {
+  width: 100%;
+  font-size: 0.9em;
+  border-collapse: collapse;
+}
+
+/* Upload & Save button */
+.shiny-modal .btn-primary {
+  background-color: #2FA4E7 !important;
+  border-color: #007bb5 !important;
+  color: white !important;
+}
+
+.shiny-modal .btn-primary:hover {
+  background-color: #007bb5 !important;
+}
+
+.file-box, .preview-box {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 15px;
+  background-color: #f9f9f9;
+}
+
+.no-files {
+  color: #888;
+  font-style: italic;
+}
+
+.section-separator {
+  border-top: 1px solid #ccc;
+  margin: 8px 0;
+}
+
+.modal .modal-loading-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 255, 255, 0.85);
+  z-index: 1050;  /* above modal content */
+  display: flex; 
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: #3498db;
+}
