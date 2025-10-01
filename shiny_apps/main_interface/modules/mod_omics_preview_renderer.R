@@ -5,9 +5,17 @@ renderPreviews <- function(rv, output, session) {
     tagList(
       p(em("Preview shows only the first 5 rows and the first 5 columns")),
       lapply(names(rv$preview), function(uid) {
-        div(class = "preview-table",
-            h5(rv$files[[uid]]$name),
-            DT::DTOutput(ns(paste0("tbl_", uid)))
+        sheets <- rv$preview[[uid]]
+        tab_panels <- lapply(names(sheets), function(sheet_name) {
+          bslib::nav_panel(
+            title = sheet_name,
+            DT::DTOutput(ns(paste0("tbl_", uid, "_", sheet_name)))
+          )
+        })
+        div(
+          class = "preview-table",   # <-- wrap each file in the frame
+          h5(rv$files[[uid]]$name),
+          bslib::navset_tab(!!!tab_panels)
         )
       })
     )
@@ -15,12 +23,14 @@ renderPreviews <- function(rv, output, session) {
   
   observe({
     lapply(names(rv$preview), function(uid) {
-      local({
-        id <- uid
-        output[[paste0("tbl_", id)]] <- DT::renderDataTable({
-          df <- rv$preview[[id]]
-          df <- df[seq_len(min(5, nrow(df))), seq_len(min(5, ncol(df)))]
-          DT::datatable(df, options = list(paging = FALSE, searching = FALSE, info = FALSE))
+      sheets <- rv$preview[[uid]]
+      lapply(names(sheets), function(sheet_name) {
+        local({
+          df <- sheets[[sheet_name]]
+          output[[paste0("tbl_", uid, "_", sheet_name)]] <- DT::renderDataTable({
+            df[seq_len(min(5, nrow(df))), seq_len(min(5, ncol(df)))] |> 
+              DT::datatable(options = list(paging = FALSE, searching = FALSE, info = FALSE))
+          })
         })
       })
     })

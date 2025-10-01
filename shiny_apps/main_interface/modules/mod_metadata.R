@@ -3,10 +3,16 @@ source("modules/mod_helpers.R")
 
 metadataUI <- function(id) {
   ns <- NS(id)
-  fileInput(ns("meta_file"), "Upload Metadata File",
-            multiple = FALSE,
-            accept = c(".csv", ".tsv", ".txt", ".xlsx", ".rds"))
+  tagList(
+    p("Please submit a metadata file containing one row per sample. The first column should be the sample ID."),
+    p("Metadata can include: sampleID, subjectID, Time, Group, and any other subject characteristics (e.g., age, sex, etc.)."),
+    br(),
+    fileInput(ns("meta_file"), "Upload Metadata File",
+              multiple = FALSE,
+              accept = c(".csv", ".tsv", ".txt", ".xlsx", ".rds"))
+  )
 }
+
 
 metadataServer <- function(id, save_dir = tempdir(), rdata_prefix = "metadata") {
   moduleServer(id, function(input, output, session) {

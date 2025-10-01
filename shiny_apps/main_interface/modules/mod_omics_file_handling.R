@@ -3,25 +3,32 @@ safe_preview <- function(path, ext, n = 5) {
     ext <- tolower(ext)
     if (ext %in% c("csv","tsv","txt")) {
       if (requireNamespace("data.table", quietly = TRUE)) {
-        data.table::fread(path, nrows = n, data.table = FALSE)
+        df <- data.table::fread(path, nrows = n, data.table = FALSE)
       } else if (requireNamespace("readr", quietly = TRUE)) {
-        readr::read_delim(path, delim = NULL, n_max = n, show_col_types = FALSE)
+        df <- readr::read_delim(path, delim = NULL, n_max = n, show_col_types = FALSE)
       } else {
         firstline <- readLines(path, n = 1)
         sep <- if (grepl("\t", firstline)) "\t" else if (grepl(",", firstline)) "," else ""
-        utils::read.table(path, sep = sep, header = TRUE, nrows = n, check.names = FALSE)
+        df <- utils::read.table(path, sep = sep, header = TRUE, nrows = n, check.names = FALSE)
       }
+      list(`Sheet1` = df)  # wrap in list for consistency
     } else if (ext %in% c("xlsx","xls") && requireNamespace("readxl", quietly = TRUE)) {
-      readxl::read_excel(path, n_max = n)
+      sheets <- readxl::excel_sheets(path)
+      lapply(sheets, function(s) {
+        df <- readxl::read_excel(path, sheet = s)
+        df[seq_len(min(n, nrow(df))), seq_len(min(n, ncol(df)))]
+      }) |> setNames(sheets)
     } else if (ext == "rds") {
       obj <- readRDS(path)
-      if (is.data.frame(obj)) head(obj, n)
-      else data.frame(value = utils::capture.output(head(obj, n)))
+      if (is.data.frame(obj)) list(`Data` = head(obj, n))
+      else list(`Data` = data.frame(value = utils::capture.output(head(obj, n))))
     } else {
-      data.frame(note = paste("No preview for .", ext))
+      list(`Data` = data.frame(note = paste("No preview for .", ext)))
     }
-  }, error = function(e) data.frame(error = conditionMessage(e)))
+  }, error = function(e) list(`Error` = data.frame(error = conditionMessage(e))))
 }
+
+
 
 addFile <- function(rv, uid, name, tmp_path, save_dir) {
   dest_path <- file.path(save_dir, paste0(uid, "_", name))

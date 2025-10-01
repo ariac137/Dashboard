@@ -23,6 +23,14 @@ makeOmicsModal <- function(ns) {
         div(class="card-body", uiOutput(ns("preview_ui")))
     ),
     
+    # Loading overlay (initially hidden)
+    div(
+      id = ns("loading_overlay"),
+      class = "modal-loading-overlay",
+      style = "display: none;",  # initially hidden
+      "Currently processing files..."
+    ),
+    
     footer = tagList(
       modalButton("Cancel"),
       actionButton(ns("upload_btn_omics"), "Upload & Save", class="btn-primary")
