@@ -11,10 +11,10 @@ mainPageUI <- function(id) {
   tagList(
     tabsetPanel(
       id = ns("main_tabs"),
-      tabPanel(
-        "Table View",
-        renderTableUI(ns("table_render_logic"))
-      ),
+      # tabPanel(
+      #   "Table View",
+      #   renderTableUI(ns("table_render_logic"))
+      # ),
       tabPanel(
         "Timeline Plots",
         metadataTimelinePlotsUI(ns("timeline_plots"))
@@ -32,11 +32,11 @@ mainPageServer <- function(id, uploaded_reactive, omics_names_reactive) {
       uploaded_file_reactive = uploaded_reactive$metadata_file
     )
     
-    # 2. Render table
-    renderTableServer(
-      id = "table_render_logic",
-      processed_data_reactive = loaded_data$processed_data
-    )
+    # # 2. Render table
+    # renderTableServer(
+    #   id = "table_render_logic",
+    #   processed_data_reactive = loaded_data$processed_data
+    # )
     
     # 3. Render dynamic omics timeline plots
     metadataTimelinePlotsServer(

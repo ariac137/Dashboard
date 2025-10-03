@@ -23,8 +23,8 @@ sidebarUI <- function(id) {
     hr(),
     
     # --- Omics upload (modal, multiple files) ---
-    h4("Omics Files Upload"),
-    omicsModalUI(ns("omics1"))
+    #h4("Omics Files Upload"),
+    #omicsModalUI(ns("omics1"))
     # REMOVED: Global actionButton(ns("global_upload_btn"), ...)
   )
 }
@@ -41,14 +41,14 @@ sidebarServer <- function(id, save_dir = tempdir()) {
     metadata <- metadataServer("meta1", save_dir = save_dir)
     
     # --- Omics upload server ---
-    omics <- omicsModalServer("omics1", save_dir = save_dir)
+    #omics <- omicsModalServer("omics1", save_dir = save_dir)
     
     # Return all reactive outputs
     return(list(
       metadata_file = metadata$file,
       metadata_preview = metadata$preview,
-      omics_files = omics$files,
-      omics_preview = omics$preview,
+      #omics_files = omics$files,
+      #omics_preview = omics$preview,
       omics_names = omics_names_reactive  
     ))
   })
