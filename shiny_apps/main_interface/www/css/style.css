@@ -132,14 +132,16 @@ br {
 
 /* Card headers */
 .shiny-modal .card-header {
-  font-weight: bold;
-  background-color: #2FA4E7; /* Cerulean header */
-  color: white;
-  padding: 8px 12px;
-  border-bottom: 1px solid #007bb5;
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
+  background-color: #2FA4E7 !important;
+  color: white !important;
+  font-weight: bold !important;
+  padding: 8px 12px !important;
+  border-bottom: 1px solid #007bb5 !important;
+  border-top-left-radius: 6px !important;
+  border-top-right-radius: 6px !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
 }
+
 
 /* Card body */
 .shiny-modal .card-body {
@@ -193,14 +195,6 @@ br {
   background-color: #007bb5 !important;
 }
 
-.file-box, .preview-box {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 10px;
-  margin-bottom: 15px;
-  background-color: #f9f9f9;
-}
-
 .no-files {
   color: #888;
   font-style: italic;
@@ -222,4 +216,53 @@ br {
   font-size: 18px;
   font-weight: bold;
   color: #3498db;
+}
+
+.modal-dialog .card-header,
+.card-header {
+  background: linear-gradient(145deg, #f0f0f0, #d9d9d9);  /* subtle gradient */
+  color: #222;                                         /* dark text for readability */
+  font-weight: 600;                                    /* semi-bold */
+  padding: 10px 15px;                                  /* slightly larger padding */
+  border-bottom: 1px solid #bbb;                      /* soft border */
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);             /* subtle shadow for depth */
+  text-shadow: 0 1px 1px rgba(255,255,255,0.3);       /* light text shadow for softness */
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+/* General button hover effect */
+button,
+input[type="button"],
+input[type="submit"],
+.shiny-download-link,
+.shiny-modal .btn,
+.shiny-modal .btn-primary {
+    transition: all 0.2s ease-in-out;  /* smooth hover transition */
+    cursor: pointer;
+}
+
+/* Hover styles */
+button:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover,
+.shiny-download-link:hover,
+.shiny-modal .btn:hover,
+.shiny-modal .btn-primary:hover {
+    background-color: #1d7fc1;   /* darker blue */
+    color: #fff;                  /* ensure text stays white */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);  /* subtle shadow */
+    transform: translateY(-1px); /* slight lift effect */
+}
+
+/* Optional: active / pressed state */
+button:active,
+input[type="button"]:active,
+input[type="submit"]:active,
+.shiny-download-link:active,
+.shiny-modal .btn:active,
+.shiny-modal .btn-primary:active {
+    background-color: #166093;   /* even darker blue */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transform: translateY(0);
 }

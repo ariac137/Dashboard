@@ -14,14 +14,18 @@ makeOmicsModal <- function(ns) {
     # Current files card
     div(class="card",
         div(class="card-header", "Current Files"),
-        div(class="card-body", uiOutput(ns("file_list_ui")))
+        br(),
+        div(class="card-body", uiOutput(ns("file_list_ui"))),
     ),
+    br(),
     
     # Preview card
     div(class="card",
         div(class="card-header", "Previews"),
-        div(class="card-body", uiOutput(ns("preview_ui")))
+        br(),
+        div(class="card-body", uiOutput(ns("preview_ui"))),
     ),
+    br(),
     
     # Loading overlay (initially hidden)
     div(

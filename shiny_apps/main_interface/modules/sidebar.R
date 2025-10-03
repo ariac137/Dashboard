@@ -1,17 +1,20 @@
 library(shiny)
-source("modules/mod_helpers.R")
-source("modules/mod_description_sample.R")
-source("modules/mod_metadata.R")
-source("modules/mod_omics_server.R")
+source("modules/upload_instructions/upload_instructions.R")
+source("modules/metadata/metadata_server.R")
+source("modules/omics/omics_server.R")
+source("modules/omics_name/omics_name_file_upload_server.R")
 
 # -------------------------------
 # Combined File Upload Module
 # -------------------------------
-fileUploadUI <- function(id) {
+sidebarUI <- function(id) {
   ns <- NS(id)
   tagList(
     # --- Description / sample downloads ---
-    descriptionSampleUI(ns("desc1")),
+    descriptionSampleUI("desc1"),
+    hr(),
+    
+    omicsFileUploadUI(ns("omics_submit_A")),
     hr(),
     
     # --- Metadata upload (single file) ---
@@ -26,11 +29,13 @@ fileUploadUI <- function(id) {
   )
 }
 
-fileUploadServer <- function(id, save_dir = tempdir()) {
+sidebarServer <- function(id, save_dir = tempdir()) {
   moduleServer(id, function(input, output, session) {
     
     # --- Description server ---
     descriptionSampleServer("desc1")
+    
+    omics_names_reactive <- omicsFileUploadServer("omics_submit_A")
     
     # --- Metadata upload server ---
     metadata <- metadataServer("meta1", save_dir = save_dir)
@@ -43,7 +48,8 @@ fileUploadServer <- function(id, save_dir = tempdir()) {
       metadata_file = metadata$file,
       metadata_preview = metadata$preview,
       omics_files = omics$files,
-      omics_preview = omics$preview
+      omics_preview = omics$preview,
+      omics_names = omics_names_reactive  
     ))
   })
 }

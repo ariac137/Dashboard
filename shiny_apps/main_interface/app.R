@@ -1,5 +1,6 @@
 library(shiny)
-source("modules/mod_file_upload.R")  # existing module
+source("modules/sidebar.R")  # existing module
+source("modules/main_page.R") 
 
 options(shiny.maxRequestSize = 500 * 1024^2)
 
@@ -12,18 +13,25 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       # Existing file upload module
-      fileUploadUI("uploader"),
+      sidebarUI("sidebar"),
       width = 3
     ),
     
     mainPanel(
-      width = 9
+      width = 9, 
+      mainPageUI("main_page_logic"),
     )
   )
 )
 
 server <- function(input, output, session) {
-  uploaded <- fileUploadServer("uploader")  # existing module
+  
+  uploaded <- sidebarServer("sidebar")  # existing module
+  mainPageServer(
+    id = "main_page_logic",
+    uploaded_reactive = uploaded,
+    omics_names_reactive = uploaded$omics_names
+  )
 
 }
 

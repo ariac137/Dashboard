@@ -16,8 +16,10 @@ descriptionSampleUI <- function(id) {
       p("2. Omics files: You can upload multiple files per session. Each file should have samples in rows and features in columns."),
       p("3. Supported file types for both metadata and omics files: .csv, .tsv, .txt, .xlsx, .rds"),
       p("4. Excel files with multiple sheets are supported; each sheet is processed as a separate dataset."),
-      
       br(),
+      
+      h4("Data Overview"),
+      
       downloadButton(ns("download_omics"), "Download Sample Omics File", width = "100%"),
       downloadButton(ns("download_metadata"), "Download Sample Metadata File", width = "100%"),
       br()
