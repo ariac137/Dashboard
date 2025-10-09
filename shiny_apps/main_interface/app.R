@@ -4,8 +4,11 @@ source("modules/main_page.R")
 
 options(shiny.maxRequestSize = 500 * 1024^2)
 
-DEFAULT_OMICS_NAMES_FILE <- "data/omics_name.csv"
-DEFAULT_METADATA_FILE <- "data/metadata_PREMITUR_csv.csv"
+PREMITUR_OMICS_NAMES_FILE <- "data/omics_name.csv"
+PREMITUR_METADATA_FILE <- "data/metadata_PREMITUR_csv.csv"
+
+CLAUDIO_OMICS_NAMES_FILE <- "data/omics.txt"
+CLAUDIO_METADATA_FILE <- "data/metadata_basic.csv"
 
 ui <- fluidPage(
   #theme = bslib::bs_theme(bootswatch = "cerulean"),
@@ -31,8 +34,8 @@ server <- function(input, output, session) {
   
   uploaded <- sidebarServer(
     id = "sidebar",
-    default_omics_names_path = DEFAULT_OMICS_NAMES_FILE,
-    default_metadata_path = DEFAULT_METADATA_FILE
+    default_omics_names_path = CLAUDIO_OMICS_NAMES_FILE,
+    default_metadata_path = CLAUDIO_METADATA_FILE
   ) 
   mainPageServer(
     id = "main_page_logic",

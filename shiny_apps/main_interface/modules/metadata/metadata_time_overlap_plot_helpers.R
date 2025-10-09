@@ -42,7 +42,7 @@ plot_metadata_time_overlap <- function(metadata, omics_cols) {
 
 # Time Overlap plot height helper
 get_time_overlap_plot_height <- function(metadata, omics_cols) {
-  min_height <- 300
+  min_height <- 50
   if (ncol(metadata) < 2) return(min_height)
   
   id_col_name <- names(metadata)[1]
