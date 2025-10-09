@@ -34,8 +34,8 @@ server <- function(input, output, session) {
   
   uploaded <- sidebarServer(
     id = "sidebar",
-    default_omics_names_path = CLAUDIO_OMICS_NAMES_FILE,
-    default_metadata_path = CLAUDIO_METADATA_FILE
+    default_omics_names_path = PREMITUR_OMICS_NAMES_FILE,
+    default_metadata_path = PREMITUR_METADATA_FILE
   ) 
   mainPageServer(
     id = "main_page_logic",
