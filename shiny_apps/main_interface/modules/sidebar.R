@@ -29,16 +29,25 @@ sidebarUI <- function(id) {
   )
 }
 
-sidebarServer <- function(id, save_dir = tempdir()) {
+sidebarServer <- function(id, save_dir = tempdir(),
+                          default_omics_names_path = NULL, 
+                          default_metadata_path = NULL)  {
   moduleServer(id, function(input, output, session) {
     
     # --- Description server ---
     descriptionSampleServer("desc1")
     
-    omics_names_reactive <- omicsFileUploadServer("omics_submit_A")
+    omics_names_reactive <- omicsFileUploadServer(
+      "omics_submit_A", 
+      default_file_path = default_omics_names_path
+    )
     
     # --- Metadata upload server ---
-    metadata <- metadataServer("meta1", save_dir = save_dir)
+    metadata <- metadataServer(
+      "meta1", 
+      save_dir = save_dir, 
+      default_file_path = default_metadata_path
+    )
     
     # --- Omics upload server ---
     #omics <- omicsModalServer("omics1", save_dir = save_dir)
