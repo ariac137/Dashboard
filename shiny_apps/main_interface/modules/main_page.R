@@ -4,7 +4,7 @@ library(shiny)
 source("modules/metadata/metadata_table_render_ui.R")
 source("modules/metadata/metadata_data_loader_server.R") # NEW: Data loading logic
 source("modules/metadata/metadata_table_render_server.R")
-source("modules/metadata/metadata_timeline_plot_server.R")
+source("modules/metadata/metadata_time_overlap_plot_server.R")
 
 mainPageUI <- function(id) {
   ns <- NS(id)
