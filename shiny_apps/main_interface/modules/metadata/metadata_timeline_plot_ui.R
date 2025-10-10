@@ -2,11 +2,15 @@ metadataTimelinePlotsUI <- function(id) {
   ns <- NS(id)
   tagList(
     h3("Omics Timeline Plots (Faceted Comparison)"),
-    # Only the Coloring dropdown remains
+    # Container for two side-by-side dropdowns
     fluidRow(
-      column(6, # Using column(6) for a centered, medium-width input
-             # Dropdown for selecting the categorical column to color by
-             uiOutput(ns("color_column_ui")) 
+      column(6, 
+             # Dropdown for strip color (and y-axis labels)
+             uiOutput(ns("strip_color_column_ui")) 
+      ),
+      column(6,
+             # Dropdown for time point marker color
+             uiOutput(ns("point_color_column_ui"))
       )
     ),
     # Plot container
@@ -14,12 +18,12 @@ metadataTimelinePlotsUI <- function(id) {
   )
 }
 
-# The UI that contains the actual dropdown input
-colorColumnUI <- function(ns, choices) {
+# The generic UI that creates a single dropdown input
+timelineColorDropdownUI <- function(ns, inputId, label, choices) {
   selectInput(
-    ns("color_column"), 
-    "Color Points & Subject Labels by", # <--- Updated Label for conciseness
+    ns(inputId), 
+    label,
     choices = choices,
-    selected = "None" # <--- Ensures input starts as "None", not NULL
+    selected = "None"
   )
 }
