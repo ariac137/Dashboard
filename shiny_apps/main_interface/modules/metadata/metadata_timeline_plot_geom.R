@@ -44,18 +44,12 @@ build_interactive_timeline_plot <- function(
                  linewidth = 1) +
     
     # 2. Draw the time points (Filter out the dummy anchor points)
+    # The 'color' aesthetic is removed from aes() and no conditional color scale is added.
     geom_point(data = filter(metadata_long_facetted_anchored, available != "Anchor"),
-               aes(color = if (!is.null(color_by_column)) color_group else NULL, 
-                   text = plot_tooltip_text), 
-               size = 3) +
+               aes(text = plot_tooltip_text), 
+               size = 3) + # <-- 'color' aesthetic removed here
     
-    # 3. Color Scale for Points (Only apply if coloring is active)
-    { if (!is.null(color_by_column)) {
-      list(
-        scale_color_manual(values = color_palette, name = color_label),
-        guides(color = guide_legend(override.aes = list(size = 5)))
-      )
-    }} +
+
     
     # Facet by omics_type to show plots side-by-side
     facet_wrap(~ omics_type, ncol = length(omics_levels),

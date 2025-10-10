@@ -64,6 +64,7 @@ setup_plot_coloring <- function(metadata, id_col_name, id_order, color_by_column
     strip_data_base <- strip_data_base %>%
       left_join(color_data, by = "id")
     
+    # guide = "none" ensures the fill legend for the strip is hidden
     fill_scale_layer <- scale_fill_manual(values = color_palette, name = color_label, guide = "none")
     
   } else {
