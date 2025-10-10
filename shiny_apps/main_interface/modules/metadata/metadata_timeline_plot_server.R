@@ -32,24 +32,16 @@ metadataTimelinePlotsServer <- function(id, metadata_reactive, omics_names_react
     
     # 1. Generate UI for Coloring dropdown
     output$color_column_ui <- renderUI({
-      choices <- categorical_cols()
-      
-      selectInput(
-        session$ns("color_column"), 
-        "Color Y-Axis by", 
-        choices = choices, 
-        selected = "None",
-        multiple = FALSE
-      )
+      colorColumnUI(session$ns, categorical_cols())
     })
     
-    # 2. The filtered data is now just the original data (no ID filtering applied)
+    # 2. Filtered/Processed metadata (currently no filtering, just pass-through)
     filtered_metadata_reactive <- reactive({
       req(metadata_reactive())
       metadata_reactive()
     })
     
-    # 3. Reactive to generate the SINGLE faceted plot
+    # 3. Reactive to generate the SINGLE faceted plot (which now includes the grouping plot)
     plots_single <- reactive({
       req(filtered_metadata_reactive())
       req(omics_names_reactive())
@@ -57,7 +49,8 @@ metadataTimelinePlotsServer <- function(id, metadata_reactive, omics_names_react
       # Pass the selected coloring column name to the helper function
       color_col <- if (is.null(input$color_column) || input$color_column == "None") NULL else input$color_column
       
-      plot_metadata_timeline_faceted(
+      # Renamed function call
+      generate_combined_timeline_plot(
         metadata = filtered_metadata_reactive(), 
         omics_cols = omics_names_reactive(),
         color_by_column = color_col

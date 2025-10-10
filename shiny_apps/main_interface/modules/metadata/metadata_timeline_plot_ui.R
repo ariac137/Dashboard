@@ -18,7 +18,8 @@ metadataTimelinePlotsUI <- function(id) {
 colorColumnUI <- function(ns, choices) {
   selectInput(
     ns("color_column"), 
-    "Color Points by", # <--- Updated Label
-    choices = choices
+    "Color Points & Subject Labels by", # <--- Updated Label for conciseness
+    choices = choices,
+    selected = "None" # <--- Ensures input starts as "None", not NULL
   )
 }
