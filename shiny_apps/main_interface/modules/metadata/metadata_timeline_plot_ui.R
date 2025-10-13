@@ -1,3 +1,5 @@
+# metadata_timeline_plot_ui.R
+
 metadataTimelinePlotsUI <- function(id) {
   ns <- NS(id)
   tagList(
@@ -14,7 +16,10 @@ metadataTimelinePlotsUI <- function(id) {
       )
     ),
     # Plot container
-    uiOutput(ns("timeline_plot_container"))
+    uiOutput(ns("timeline_plot_container")),
+    
+    # The table UI will be placed below this container in the main server file
+    # by calling the new contingency table module UI.
   )
 }
 

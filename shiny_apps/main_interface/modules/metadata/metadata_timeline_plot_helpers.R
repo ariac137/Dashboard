@@ -139,7 +139,7 @@ get_timeline_plot_height <- function(metadata, omics_cols) {
     length()
   
   base_height <- 150 
-  height_per_subject <- 25 
+  height_per_subject <- 15
   
   calculated_height <- base_height + (n_subjects_with_data * height_per_subject)
   

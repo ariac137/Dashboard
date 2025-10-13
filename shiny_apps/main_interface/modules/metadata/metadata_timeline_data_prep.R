@@ -108,7 +108,7 @@ prepare_strip_and_anchor_data <- function(metadata_long_facetted, strip_data_bas
   
   # Calculate position and width for the strip
   strip_offset_val <- max(1, time_range_diff_first_facet * 0.05) 
-  strip_width_val <- max(0.2, time_range_diff_first_facet * 0.01)
+  strip_width_val <- max(0.35, time_range_diff_first_facet * 0.05)
   strip_x_pos <- min_time_first_facet - strip_offset_val
   
   # 1. Create the final strip data: Join base strip data with ONLY the first omics_type.

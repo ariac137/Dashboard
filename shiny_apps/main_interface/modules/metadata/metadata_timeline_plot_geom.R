@@ -1,5 +1,3 @@
-# timeline_plot_geom.R
-
 library(viridis) 
 library(ggplot2) 
 library(plotly) 
@@ -25,6 +23,15 @@ build_interactive_timeline_plot <- function(
     semi_join(valid_segment_combinations, by = c("id", "omics_type"))
   
   
+  # Determine the aesthetic variable that drives the legend
+  legend_aesthetic <- if (point_coloring_active && !use_continuous_scale) {
+    # Categorical custom color: use point_color_group
+    quote(point_color_group)
+  } else {
+    # Default or continuous color: use omics_type
+    quote(omics_type)
+  }
+  
   # The main combined ggplot using facet_wrap
   p <- ggplot(metadata_long_facetted_anchored, aes(x = Timepoint, y = id)) +
     
@@ -41,13 +48,15 @@ build_interactive_timeline_plot <- function(
     fill_scale_layer + 
     
     # 1. Draw the time range segment 
-    # CRITICAL FIX: Use group = 1 to force all segments into a SINGLE Plotly trace.
+    # Use the same aesthetic to create grouped traces, but use a static `group` aesthetic 
+    # to differentiate it from the points if needed, or stick to the shared aesthetic
+    # to facilitate automatic grouping.
     geom_segment(data = range_data_to_plot,
                  aes(x = min_pts, xend = max_pts, y = id, yend = id, 
-                     group = 1), # <-- FORCE ALL SEGMENTS TO ONE TRACE GROUP
-                 color = "gray60",
+                     color = !!legend_aesthetic), # <--- USE LEGEND AESTHETIC FOR GROUPING
+                 color = "gray60", # <--- VISUAL OVERRIDE (outside aes)
                  linewidth = 1,
-                 show.legend = FALSE) + # Hide the segment traces from the legend
+                 show.legend = FALSE) + # Still hide segments from the legend
     
     # 2. Draw the time points
     geom_point(data = actual_point_data,
@@ -61,7 +70,7 @@ build_interactive_timeline_plot <- function(
                  omics_type
                }, 
                text = plot_tooltip_text), 
-               size = 3) +
+               size = 2) +
     
     # 3. Color Scale for Points/Omics 
     { if (point_coloring_active) {
@@ -108,65 +117,75 @@ build_interactive_timeline_plot <- function(
   # 4. Convert to Plotly
   p_interactive <- plotly::ggplotly(p, tooltip = "text", originalData = FALSE)
   
-  # 5. CRITICAL FIX: Link the single segment trace to the first categorical legend item.
-  
-  # Determine the name of the first categorical legend item (the master toggle)
-  master_group_name <- NULL
-  if (point_coloring_active && !use_continuous_scale && length(color_palette) > 0) {
-    # Custom color active: use the first color level name
-    master_group_name <- names(color_palette)[1]
-  } else if (!point_coloring_active && length(omics_levels) > 0) {
-    # No custom color: use the first omics type name
-    master_group_name <- omics_levels[1]
-  }
+  # 5. CRITICAL FIX: Explicit Trace Linking 
   
   # Trace 1: geom_tile (Strip). Always hide from legend.
   if (length(p_interactive$x$data) >= 1) {
     p_interactive$x$data[[1]]$showlegend <- FALSE
   }
   
-  # The segment trace is now the second trace (index 2) because `group = 1` forced it into a single trace.
-  # Check if the trace at index 2 exists and is a line trace (which it should be).
-  if (length(p_interactive$x$data) >= 2 && !is.null(p_interactive$x$data[[2]]$mode) && p_interactive$x$data[[2]]$mode == "lines") {
-    segment_trace_index <- 2
-    
-    # Link this single segment trace to the master group name.
-    if (!is.null(master_group_name)) {
-      p_interactive$x$data[[segment_trace_index]]$legendgroup <- master_group_name
-    }
-    
-    p_interactive$x$data[[segment_trace_index]]$showlegend <- FALSE
-  }
-  
-  # Update Point Traces (starting from index 3)
   omics_name_map <- setNames(omics_levels, 1:length(omics_levels))
   
-  for (i in 3:length(p_interactive$x$data)) {
+  # Prepare to map trace name (Plotly's internal name) to the final, visible legend group name
+  trace_to_legend_map <- list()
+  
+  # Step 5A: First pass to identify point traces and map their internal Plotly name to the final legend name.
+  for (i in 2:length(p_interactive$x$data)) {
     trace <- p_interactive$x$data[[i]]
+    is_point_trace <- !is.null(trace$mode) && trace$mode == "markers"
     
-    # Determine if the trace name is one of Plotly's numerical omics factor names
-    is_omics_factor_name <- trace$name %in% names(omics_name_map)
-    
-    # 5B. Point Traces (mode="markers")
-    if (!is.null(trace$mode) && trace$mode == "markers") {
+    if (is_point_trace) {
+      group_name <- trace$name
       
       if (!point_coloring_active) {
-        # No custom color: Rename and link to the omics name.
-        if (is_omics_factor_name) {
-          group_name <- omics_name_map[[trace$name]]
-          p_interactive$x$data[[i]]$name <- group_name
-          p_interactive$x$data[[i]]$legendgroup <- group_name
-          p_interactive$x$data[[i]]$showlegend <- TRUE
+        # No custom color: Legend by Omics Type.
+        if (group_name %in% names(omics_name_map)) {
+          final_group_name <- omics_name_map[[group_name]]
+        } else {
+          final_group_name <- group_name # Fallback
         }
       } else if (!use_continuous_scale) {
-        # Custom color (Categorical): Ensure the legend group is set.
-        group_name <- trace$name
-        p_interactive$x$data[[i]]$legendgroup <- group_name
+        # Custom color (Categorical): Legend by point_color_group.
+        final_group_name <- group_name
+      } else {
+        # Continuous color: No discrete legend.
+        final_group_name <- NULL
+      }
+      
+      # Store the mapping
+      if (!is.null(final_group_name)) {
+        trace_to_legend_map[[group_name]] <- final_group_name
+      }
+      
+      # Apply point trace updates (same as before)
+      if (!is.null(final_group_name)) {
+        p_interactive$x$data[[i]]$name <- final_group_name
+        p_interactive$x$data[[i]]$legendgroup <- final_group_name
         p_interactive$x$data[[i]]$showlegend <- TRUE
       } else {
-        # Continuous color: No discrete legend, hide the trace.
         p_interactive$x$data[[i]]$showlegend <- FALSE
       }
+    }
+  }
+  
+  # Step 5B: Second pass to find segment traces and link them to the correct group.
+  for (i in 2:length(p_interactive$x$data)) {
+    trace <- p_interactive$x$data[[i]]
+    is_segment_trace <- !is.null(trace$mode) && trace$mode == "lines"
+    
+    if (is_segment_trace) {
+      # Segment traces inherit the trace name from the aesthetic used:
+      segment_internal_name <- trace$name
+      
+      # Find the final legend name this segment trace should be linked to
+      if (segment_internal_name %in% names(trace_to_legend_map)) {
+        linked_group_name <- trace_to_legend_map[[segment_internal_name]]
+        
+        # CRITICAL: Set the segment's legendgroup to match the point's
+        p_interactive$x$data[[i]]$legendgroup <- linked_group_name
+      }
+      
+      p_interactive$x$data[[i]]$showlegend <- FALSE # Segments should remain hidden from legend
     }
   }
   
