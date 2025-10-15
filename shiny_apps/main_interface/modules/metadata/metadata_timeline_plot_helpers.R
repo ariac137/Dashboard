@@ -40,8 +40,55 @@ generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_colum
   # 4. Setup Coloring for STRIP and Y-AXIS (Subject-Level)
   strip_color_setup <- setup_plot_coloring(metadata, id_col_name, id_order, color_by_column)
   
-  # 5. Setup Coloring for POINTS (for palette, label, and numeric check)
-  point_color_setup <- setup_plot_coloring(metadata, id_col_name, id_order, point_color_by_column)
+  if (!is.null(color_by_column)) {
+    # Helper to detect missing/empty values
+    is_missing <- function(x) {
+      is.na(x) | x == "" | tolower(as.character(x)) %in% c("none", "unknown", "missing", "na")
+    }
+    
+    # Count subjects per group, treating missing as "__MISSING__"
+    group_sizes <- metadata %>%
+      select(id = !!sym(id_col_name), !!sym(color_by_column)) %>%
+      distinct() %>%
+      mutate(group_clean = ifelse(is_missing(!!sym(color_by_column)), "__MISSING__", as.character(!!sym(color_by_column)))) %>%
+      count(group_clean, name = "n") %>%
+      arrange(desc(n))  # largest → smallest
+    
+    group_order <- group_sizes$group_clean
+    
+    # Map IDs to cleaned groups
+    id_to_group <- metadata %>%
+      select(id = !!sym(id_col_name), !!sym(color_by_column)) %>%
+      distinct() %>%
+      mutate(group_clean = ifelse(is_missing(!!sym(color_by_column)), "__MISSING__", as.character(!!sym(color_by_column))))
+    
+    # Reorder subjects by group size (including missing)
+    id_order <- id_to_group %>%
+      mutate(group_clean = factor(group_clean, levels = group_order)) %>%
+      arrange(group_clean, id) %>%
+      pull(id) %>%
+      unique()
+  }
+  
+  
+  
+  # 5. Setup Coloring for POINTS (based on ID only)
+  metadata_long_facetted_anchored <- metadata_long_facetted_anchored %>%
+    mutate(point_color_group = factor(id, levels = id_order))
+  
+  # Palette: generate one color per ID
+  point_colors <- RColorBrewer::brewer.pal(
+    n = max(3, length(id_order)), # ensure at least 3 colors
+    name = "Set3"
+  )[seq_along(id_order)]
+  names(point_colors) <- id_order
+  
+  # Pass this palette to the plotting function
+  point_color_setup <- list(
+    color_palette = point_colors,
+    color_label = "Subject ID",
+    is_numeric_data = FALSE
+  )
   
   # 6. Prepare Strip and Anchor Data
   strip_anchor_prep <- prepare_strip_and_anchor_data(
@@ -52,9 +99,16 @@ generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_colum
     id_order
   )
   
+  # --- FIX: Ensure IDs are comparable across datasets ---
+  metadata_long_facetted <- metadata_long_facetted %>%
+    mutate(id = as.character(id))
+  strip_anchor_prep$anchor_data <- strip_anchor_prep$anchor_data %>%
+    mutate(id = as.character(id))
+  
   # 7. Combine anchor data with main data
   metadata_long_facetted_anchored <- bind_rows(metadata_long_facetted, strip_anchor_prep$anchor_data) %>%
     mutate(omics_type = factor(omics_type, levels = omics_levels)) # Re-factor
+  
   
   # 8. Add Point Color Group (Joins the RAW column for Timepoint-Level coloring)
   if (!is.null(point_color_by_column)) {

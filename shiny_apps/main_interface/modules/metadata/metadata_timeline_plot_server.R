@@ -59,7 +59,7 @@ metadataTimelinePlotsServer <- function(id, metadata_reactive, omics_names_react
       timelineColorDropdownUI(
         session$ns, 
         "strip_color_column", 
-        "Group", 
+        "Primary Outcome", 
         strip_categorical_cols() # Use limited list
       )
     })
@@ -69,7 +69,7 @@ metadataTimelinePlotsServer <- function(id, metadata_reactive, omics_names_react
       timelineColorDropdownUI(
         session$ns, 
         "point_color_column", 
-        "Other Variables", 
+        "Secondary Variable", 
         point_color_cols() # Use expanded list
       )
     })
