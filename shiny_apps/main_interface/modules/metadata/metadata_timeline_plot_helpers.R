@@ -31,48 +31,147 @@ generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_colum
   metadata_long_facetted$omics_type <- factor(metadata_long_facetted$omics_type, levels = omics_levels)
   first_omics_type_level <- levels(metadata_long_facetted$omics_type)[1]
   
-  # 3. Determine Subject ID Order (Sorted by Omics Data Count)
+  # 3. Determine Subject ID Order (Sorted by Omics Data Count) - Fallback
   id_order <- metadata_long_facetted %>%
     count(id, sort = TRUE) %>%
     pull(id) %>%
     as.character()
   
+  # Helper to detect missing/empty values
+  is_missing <- function(x) {
+    is.na(x) | x == "" | tolower(as.character(x)) %in% c("none", "unknown", "missing", "na")
+  }
+  
+  # --- 3.5 Setup Coloring for POINTS (Secondary Dropdown) and calculate ORDER early ---
+  point_color_by_column_clean <- NULL
+  secondary_group_order <- NULL
+  
+  if (!is.null(point_color_by_column)) {
+    
+    # FIX: Ensure only ONE point color group is selected per subject ID, 
+    # even if the raw metadata has multiple timepoints/rows for that ID.
+    id_to_point_group_raw <- metadata %>%
+      select(id = !!sym(id_col_name), point_color_group_raw = !!sym(point_color_by_column)) %>%
+      # Group by ID and summarise to a single value (e.g., the first non-NA value)
+      group_by(id) %>%
+      summarise(point_color_group_raw = first(na.omit(point_color_group_raw)), .groups = 'drop')
+    
+    id_to_point_group <- id_to_point_group_raw %>%
+      mutate(
+        point_color_group_clean = as.character(point_color_group_raw),
+        point_color_group_clean = gsub(",\\d+([\\)]?)$", "\\1", point_color_group_clean)
+      ) %>%
+      # Use "None" consistently for missing points
+      mutate(point_color_group_clean = ifelse(
+        is_missing(point_color_group_clean),
+        "None", point_color_group_clean
+      ))
+    
+    # Calculate secondary group order by GLOBAL COUNT (largest to smallest)
+    secondary_group_sizes <- id_to_point_group %>%
+      select(id, point_color_group_clean) %>% 
+      distinct(id, point_color_group_clean) %>% 
+      count(point_color_group_clean, name = "n") %>%
+      arrange(desc(n))
+    
+    # --- DEBUG PRINT: Global Secondary Count --- (REMOVED)
+    # cat("\n--- Secondary Group Counts (Global, by unique ID) ---\n")
+    # print(secondary_group_sizes)
+    # cat("---------------------------------------------------\n")
+    
+    secondary_group_order <- secondary_group_sizes$point_color_group_clean
+    point_color_by_column_clean <- "point_color_group_clean"
+  }
+  
   # 4. Setup Coloring for STRIP and Y-AXIS (Subject-Level)
   strip_color_setup <- setup_plot_coloring(metadata, id_col_name, id_order, color_by_column)
   
+  
   if (!is.null(color_by_column)) {
-    # Helper to detect missing/empty values
-    is_missing <- function(x) {
-      is.na(x) | x == "" | tolower(as.character(x)) %in% c("none", "unknown", "missing", "na")
-    }
     
     # Count subjects per group, treating missing as "None"
     group_sizes <- metadata %>%
       select(id = !!sym(id_col_name), !!sym(color_by_column)) %>%
       distinct() %>%
       mutate(group_clean = ifelse(is_missing(!!sym(color_by_column)), "None", as.character(!!sym(color_by_column)))) %>%
+      # Ensure we only count unique IDs per clean group
+      select(id, group_clean) %>% 
+      distinct(id, group_clean) %>% 
       count(group_clean, name = "n") %>%
-      arrange(desc(n))  # largest → smallest
+      arrange(desc(n))  # largest → smallest (Primary Order)
+    
+    # --- DEBUG PRINT: Primary Count --- (REMOVED)
+    # cat("\n--- Primary Group Counts (by unique ID) ---\n")
+    # print(group_sizes)
+    # cat("-------------------------------------------\n")
     
     group_order <- group_sizes$group_clean
     
-    # Map IDs to cleaned groups
+    # Map IDs to cleaned groups (Primary Group)
     id_to_group <- metadata %>%
       select(id = !!sym(id_col_name), !!sym(color_by_column)) %>%
       distinct() %>%
-      # FIX 1: Use "None" consistently for missing values (must match the name used for group_sizes count)
       mutate(group_clean = ifelse(is_missing(!!sym(color_by_column)), "None", as.character(!!sym(color_by_column)))) %>%
-      # FIX 2: Clean the group name to merge indexed groups for ordering (e.g., (Fullterm,1) -> (Fullterm))
       mutate(group_clean = gsub(",\\d+([\\)]?)$", "\\1", group_clean))
     
-    # Reorder subjects by group size (including missing)
-    id_order <- id_to_group %>%
+    # --- NEW: Reorder subjects by PRIMARY group, then by SECONDARY group (if selected) ---
+    ordering_data <- id_to_group %>%
       mutate(group_clean = factor(group_clean, levels = group_order)) %>%
-      arrange(group_clean, id) %>%
+      arrange(group_clean) # Sorts by factor level (largest count first)
+    
+    if (!is.null(point_color_by_column_clean)) {
+      
+      # Calculate Secondary counts WITHIN Primary Group (Local Count)
+      secondary_counts_by_primary <- id_to_group %>%
+        left_join(id_to_point_group %>% select(id, secondary_group = point_color_group_clean), by = "id") %>%
+        # Factor primary group by count for print order
+        mutate(group_clean = factor(group_clean, levels = group_order)) %>%
+        # Group by both cleaned columns
+        group_by(group_clean, secondary_group) %>%
+        # Count unique IDs in each combination
+        summarise(n_subjects = n_distinct(id), .groups = 'drop') %>%
+        # Sort first by primary group order, then by secondary count (largest to smallest)
+        arrange(group_clean, desc(n_subjects))
+      
+      # --- DEBUG PRINT: Secondary count within Primary Group --- (REMOVED)
+      # cat("\n--- Secondary Group Counts WITHIN Primary Group (by unique ID) ---\n")
+      # print(secondary_counts_by_primary)
+      # cat("------------------------------------------------------------------\n")
+      
+      # --- MODIFIED SORTING LOGIC: Use LOCAL COUNT (n_subjects) for tie-breaker ---
+      
+      # 1. Join the secondary group name (which is now guaranteed to be one per ID) into the ordering data
+      ordering_data <- ordering_data %>%
+        left_join(id_to_point_group %>% select(id, secondary_group = point_color_group_clean), by = "id") %>%
+        
+        # 2. Join in the local counts (n_subjects) using BOTH primary (group_clean) and secondary (secondary_group) names.
+        left_join(secondary_counts_by_primary %>% select(group_clean, secondary_group, n_subjects), 
+                  by = c("group_clean", "secondary_group")) %>%
+        
+        # 3. Sort by: Primary Group (by count), then LOCAL COUNT (n_subjects, largest first), then SECONDARY GROUP NAME (to group colors), then ID.
+        arrange(group_clean, desc(n_subjects), secondary_group, id)
+      
+    } else {
+      # If no secondary group, fall back to sorting by ID
+      ordering_data <- ordering_data %>%
+        arrange(group_clean, id)
+    }
+    
+    id_order <- ordering_data %>%
       pull(id) %>%
       unique()
-  } # End of if (!is.null(color_by_column))
-
+    
+  } else if (!is.null(point_color_by_column_clean)) { 
+    # --- NEW: Scenario B: Only Secondary (Point) Color Selected (No Primary Strip) ---
+    
+    # Reorder subjects based on secondary group size
+    id_order <- id_to_point_group %>%
+      mutate(point_color_group_clean = factor(point_color_group_clean, levels = secondary_group_order)) %>%
+      arrange(point_color_group_clean, id) %>%
+      pull(id) %>%
+      unique()
+    
+  } # End of the ordering logic
   
   # 6. Prepare Strip and Anchor Data
   strip_anchor_prep <- prepare_strip_and_anchor_data(
@@ -94,31 +193,10 @@ generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_colum
     mutate(omics_type = factor(omics_type, levels = omics_levels)) # Re-factor
   
   # ---- Setup Coloring for Points based on SECOND dropdown ----
-  if (!is.null(point_color_by_column)) {
+  if (!is.null(point_color_by_column_clean)) {
     
-
-    # Map IDs to the point_color_by_column (same as strip)
-    id_to_point_group <- metadata %>%
-      select(id = !!sym(id_col_name), !!sym(point_color_by_column)) %>%
-      distinct() %>%
-      # VITAL FIX: Combine creation and cleaning into one step
-      mutate(
-        # 1. Create the base clean column
-        point_color_group_clean = as.character(!!sym(point_color_by_column)),
-        # 2. Clean the group name by removing ",1", ",2", etc., from the end
-        point_color_group_clean = gsub(",\\s*\\d+$", "", point_color_group_clean)
-      )
-    
-    # Handle missing values consistently
-    id_to_point_group <- id_to_point_group %>%
-      mutate(point_color_group_clean = ifelse(
-        is.na(point_color_group_clean) | point_color_group_clean == "" |
-          tolower(point_color_group_clean) %in% c("none","unknown","missing","na"),
-        "__MISSING__", point_color_group_clean
-      ))
-    
-    # Determine the global order (same as strip)
-    group_order <- unique(id_to_point_group$point_color_group_clean)
+    # Determine the global order
+    group_order <- secondary_group_order # Use the order calculated for coloring
     
     # Assign global factor levels to ensure consistency across all facets
     id_to_point_group <- id_to_point_group %>%
@@ -126,11 +204,12 @@ generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_colum
     
     # Join the coloring info into the long metadata
     metadata_long_facetted_anchored <- metadata_long_facetted_anchored %>%
-      left_join(id_to_point_group, by = "id") %>%
+      # FIX: Ensure we are joining the subject-level, single-color assignment
+      left_join(id_to_point_group %>% select(id, point_color_group_clean), by = "id") %>%
       mutate(point_color_group = point_color_group_clean) %>%
       select(-point_color_group_clean)
     
-    # Create color palette for plotting (same order as strip)
+    # Create color palette for plotting
     point_colors <- colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(group_order))
     names(point_colors) <- group_order
     
