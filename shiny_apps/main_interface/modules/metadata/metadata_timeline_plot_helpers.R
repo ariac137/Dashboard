@@ -46,11 +46,11 @@ generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_colum
       is.na(x) | x == "" | tolower(as.character(x)) %in% c("none", "unknown", "missing", "na")
     }
     
-    # Count subjects per group, treating missing as "__MISSING__"
+    # Count subjects per group, treating missing as "None"
     group_sizes <- metadata %>%
       select(id = !!sym(id_col_name), !!sym(color_by_column)) %>%
       distinct() %>%
-      mutate(group_clean = ifelse(is_missing(!!sym(color_by_column)), "__MISSING__", as.character(!!sym(color_by_column)))) %>%
+      mutate(group_clean = ifelse(is_missing(!!sym(color_by_column)), "None", as.character(!!sym(color_by_column)))) %>%
       count(group_clean, name = "n") %>%
       arrange(desc(n))  # largest → smallest
     
@@ -60,7 +60,10 @@ generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_colum
     id_to_group <- metadata %>%
       select(id = !!sym(id_col_name), !!sym(color_by_column)) %>%
       distinct() %>%
-      mutate(group_clean = ifelse(is_missing(!!sym(color_by_column)), "__MISSING__", as.character(!!sym(color_by_column))))
+      # FIX 1: Use "None" consistently for missing values (must match the name used for group_sizes count)
+      mutate(group_clean = ifelse(is_missing(!!sym(color_by_column)), "None", as.character(!!sym(color_by_column)))) %>%
+      # FIX 2: Clean the group name to merge indexed groups for ordering (e.g., (Fullterm,1) -> (Fullterm))
+      mutate(group_clean = gsub(",\\d+([\\)]?)$", "\\1", group_clean))
     
     # Reorder subjects by group size (including missing)
     id_order <- id_to_group %>%
@@ -68,27 +71,8 @@ generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_colum
       arrange(group_clean, id) %>%
       pull(id) %>%
       unique()
-  }
-  
-  
-  
-  # 5. Setup Coloring for POINTS (based on ID only)
-  metadata_long_facetted_anchored <- metadata_long_facetted_anchored %>%
-    mutate(point_color_group = factor(id, levels = id_order))
-  
-  # Palette: generate one color per ID
-  point_colors <- RColorBrewer::brewer.pal(
-    n = max(3, length(id_order)), # ensure at least 3 colors
-    name = "Set3"
-  )[seq_along(id_order)]
-  names(point_colors) <- id_order
-  
-  # Pass this palette to the plotting function
-  point_color_setup <- list(
-    color_palette = point_colors,
-    color_label = "Subject ID",
-    is_numeric_data = FALSE
-  )
+  } # End of if (!is.null(color_by_column))
+
   
   # 6. Prepare Strip and Anchor Data
   strip_anchor_prep <- prepare_strip_and_anchor_data(
@@ -109,29 +93,63 @@ generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_colum
   metadata_long_facetted_anchored <- bind_rows(metadata_long_facetted, strip_anchor_prep$anchor_data) %>%
     mutate(omics_type = factor(omics_type, levels = omics_levels)) # Re-factor
   
-  
-  # 8. Add Point Color Group (Joins the RAW column for Timepoint-Level coloring)
+  # ---- Setup Coloring for Points based on SECOND dropdown ----
   if (!is.null(point_color_by_column)) {
-    raw_point_color_data <- metadata %>%
-      select(
-        id = !!sym(id_col_name), 
-        Timepoint = !!sym(time_col_name),
-        !!sym(point_color_by_column)
-      ) %>%
-      rename(point_color_group = !!sym(point_color_by_column)) %>%
-      # FIX: Ensure a truly unique set of join keys (id, Timepoint) 
-      group_by(id, Timepoint) %>%
-      slice_head(n = 1) %>% 
-      ungroup()
     
-    # Left join using both ID and Timepoint to get timepoint-specific colors
+
+    # Map IDs to the point_color_by_column (same as strip)
+    id_to_point_group <- metadata %>%
+      select(id = !!sym(id_col_name), !!sym(point_color_by_column)) %>%
+      distinct() %>%
+      # VITAL FIX: Combine creation and cleaning into one step
+      mutate(
+        # 1. Create the base clean column
+        point_color_group_clean = as.character(!!sym(point_color_by_column)),
+        # 2. Clean the group name by removing ",1", ",2", etc., from the end
+        point_color_group_clean = gsub(",\\s*\\d+$", "", point_color_group_clean)
+      )
+    
+    # Handle missing values consistently
+    id_to_point_group <- id_to_point_group %>%
+      mutate(point_color_group_clean = ifelse(
+        is.na(point_color_group_clean) | point_color_group_clean == "" |
+          tolower(point_color_group_clean) %in% c("none","unknown","missing","na"),
+        "__MISSING__", point_color_group_clean
+      ))
+    
+    # Determine the global order (same as strip)
+    group_order <- unique(id_to_point_group$point_color_group_clean)
+    
+    # Assign global factor levels to ensure consistency across all facets
+    id_to_point_group <- id_to_point_group %>%
+      mutate(point_color_group_clean = factor(point_color_group_clean, levels = group_order))
+    
+    # Join the coloring info into the long metadata
     metadata_long_facetted_anchored <- metadata_long_facetted_anchored %>%
-      left_join(raw_point_color_data, by = c("id", "Timepoint"), relationship = "many-to-one") %>% 
-      # Ensure factor conversion is possible, even for numeric data
-      mutate(point_color_group = factor(point_color_group))
+      left_join(id_to_point_group, by = "id") %>%
+      mutate(point_color_group = point_color_group_clean) %>%
+      select(-point_color_group_clean)
+    
+    # Create color palette for plotting (same order as strip)
+    point_colors <- colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(group_order))
+    names(point_colors) <- group_order
+    
+    point_color_setup <- list(
+      color_palette = point_colors,
+      color_label = point_color_by_column,
+      is_numeric_data = FALSE
+    )
+    
   } else {
+    # Default coloring if no second dropdown selected
     metadata_long_facetted_anchored <- metadata_long_facetted_anchored %>%
-      mutate(point_color_group = "None")
+      mutate(point_color_group = factor("None"))
+    
+    point_color_setup <- list(
+      color_palette = c("None" = "gray"),
+      color_label = "None",
+      is_numeric_data = FALSE
+    )
   }
   
   # 9. Add Tooltip Text

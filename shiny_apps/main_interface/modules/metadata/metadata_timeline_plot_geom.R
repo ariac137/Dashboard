@@ -1,41 +1,36 @@
-library(viridis) 
-library(ggplot2) 
-library(plotly) 
-library(dplyr) 
+library(viridis)
+library(ggplot2)
+library(plotly)
+library(dplyr)
 
 #' Constructs the faceted ggplot and converts it to an interactive plotly object.
 build_interactive_timeline_plot <- function(
-    metadata_long_facetted_anchored, range_data_facetted, 
-    strip_data, strip_x_pos, strip_width_val, fill_scale_layer, 
-    color_palette, color_label, point_color_by_column, y_axis_colors, 
-    id_order, omics_levels, time_col_name, is_numeric_data) { 
+    metadata_long_facetted_anchored, range_data_facetted,
+    strip_data, strip_x_pos, strip_width_val, fill_scale_layer,
+    color_palette, color_label, point_color_by_column, y_axis_colors,
+    id_order, omics_levels, time_col_name, is_numeric_data) {
   
   point_coloring_active <- !is.null(point_color_by_column)
   use_continuous_scale <- point_coloring_active && is_numeric_data
   
-  # --- Data Preparation for Geoms ---
+  # --- Data Preparation ---
   actual_point_data <- filter(metadata_long_facetted_anchored, available != "Anchor")
-  
   valid_segment_combinations <- actual_point_data %>%
     distinct(id, omics_type)
-  
   range_data_to_plot <- range_data_facetted %>%
     semi_join(valid_segment_combinations, by = c("id", "omics_type"))
   
-  
-  # Determine the aesthetic variable that drives the legend
+  # Legend aesthetic
   legend_aesthetic <- if (point_coloring_active && !use_continuous_scale) {
-    # Categorical custom color: use point_color_group
     quote(point_color_group)
   } else {
-    # Default or continuous color: use omics_type
     quote(omics_type)
   }
   
-  # The main combined ggplot using facet_wrap
+  # --- Build ggplot ---
   p <- ggplot(metadata_long_facetted_anchored, aes(x = Timepoint, y = id)) +
     
-    # 0. The Vertical Color Strip (geom_tile) - MUST BE FIRST
+    # Vertical color strip
     geom_tile(
       data = strip_data,
       aes(x = strip_x_pos, y = id, fill = color_group),
@@ -43,41 +38,31 @@ build_interactive_timeline_plot <- function(
       height = 0.9,
       inherit.aes = FALSE
     ) +
+    fill_scale_layer +
     
-    # Apply the fill scale
-    fill_scale_layer + 
-    
-    # 1. Draw the time range segment 
-    # Use the same aesthetic to create grouped traces, but use a static `group` aesthetic 
-    # to differentiate it from the points if needed, or stick to the shared aesthetic
-    # to facilitate automatic grouping.
+    # Time range segments
     geom_segment(data = range_data_to_plot,
-                 aes(x = min_pts, xend = max_pts, y = id, yend = id, 
-                     color = !!legend_aesthetic), # <--- USE LEGEND AESTHETIC FOR GROUPING
-                 color = "gray60", # <--- VISUAL OVERRIDE (outside aes)
+                 aes(x = min_pts, xend = max_pts, y = id, yend = id,
+                     color = !!legend_aesthetic),
+                 color = "gray60",
                  linewidth = 1,
-                 show.legend = FALSE) + # Still hide segments from the legend
+                 show.legend = FALSE) +
     
-    # 2. Draw the time points
+    # Points
     geom_point(data = actual_point_data,
                aes(color = if (point_coloring_active) {
-                 if (use_continuous_scale) {
-                   as.numeric(as.character(point_color_group))
-                 } else {
-                   point_color_group
-                 }
+                 if (use_continuous_scale) as.numeric(as.character(point_color_group))
+                 else point_color_group
                } else {
                  omics_type
-               }, 
-               text = plot_tooltip_text), 
+               },
+               text = plot_tooltip_text),
                size = 2) +
     
-    # 3. Color Scale for Points/Omics 
+    # Color scales
     { if (point_coloring_active) {
       if (use_continuous_scale) {
-        list(
-          viridis::scale_color_viridis(discrete = FALSE, name = color_label)
-        )
+        list(viridis::scale_color_viridis(discrete = FALSE, name = color_label))
       } else {
         list(
           scale_color_manual(values = color_palette, name = color_label),
@@ -85,111 +70,73 @@ build_interactive_timeline_plot <- function(
         )
       }
     } else {
-      # No custom color - use omics_type for legend
-      n_omics <- length(omics_levels)
-      omics_palette <- setNames(rep("gray30", n_omics), omics_levels)
+      omics_palette <- setNames(rep("gray30", length(omics_levels)), omics_levels)
       list(
         scale_color_manual(values = omics_palette, name = "Omics Type"),
         guides(color = guide_legend(override.aes = list(size = 5)))
       )
     }} +
     
-    # Facet by omics_type to show plots side-by-side
+    # Facets
     facet_wrap(~ omics_type, ncol = length(omics_levels),
                scales = "free_x",
-               labeller = label_value) + 
+               labeller = label_value) +
     
-    # --- Theme and Customization ---
+    # Theme
     theme_minimal(base_size = 15) +
     theme(axis.title = element_blank(),
-          axis.text.y = element_text(
-            size = 9, 
-            color = if (is.null(y_axis_colors)) "black" else y_axis_colors
-          ),
-          panel.spacing.x = unit(0.2, "cm"), 
+          axis.text.y = element_text(size = 9,
+                                     color = if (is.null(y_axis_colors)) "black" else y_axis_colors),
+          panel.spacing.x = unit(0.2, "cm"),
           plot.margin = margin(t = 5, r = 20, b = 10, l = 20, unit = "pt"),
-          plot.title = element_text(margin = margin(b = -10, unit = "pt"))
-    ) +
-    
-    labs(x = time_col_name) + 
+          plot.title = element_text(margin = margin(b = -10, unit = "pt"))) +
+    labs(x = time_col_name) +
     ggtitle("Omics Timeline Plots (Faceted Comparison - Interactive)")
   
-  # 4. Convert to Plotly
+  # After ggplotly conversion
   p_interactive <- plotly::ggplotly(p, tooltip = "text", originalData = FALSE)
   
-  # 5. CRITICAL FIX: Explicit Trace Linking 
-  
-  # Trace 1: geom_tile (Strip). Always hide from legend.
+  # Hide geom_tile traces
   if (length(p_interactive$x$data) >= 1) {
     p_interactive$x$data[[1]]$showlegend <- FALSE
   }
   
-  omics_name_map <- setNames(omics_levels, 1:length(omics_levels))
+  # Map unique categories to single legend entries
+  # metadata_timeline_plot_geom.R (Around line 90)
   
-  # Prepare to map trace name (Plotly's internal name) to the final, visible legend group name
-  trace_to_legend_map <- list()
-  
-  # Step 5A: First pass to identify point traces and map their internal Plotly name to the final legend name.
-  for (i in 2:length(p_interactive$x$data)) {
+  # Map unique categories to single legend entries
+  for (i in seq_along(p_interactive$x$data)) {
     trace <- p_interactive$x$data[[i]]
-    is_point_trace <- !is.null(trace$mode) && trace$mode == "markers"
     
-    if (is_point_trace) {
-      group_name <- trace$name
+    if (!is.null(trace$mode) && grepl("markers", trace$mode)) {
+      # Get the original category
+      clean_name <- trace$name
       
-      if (!point_coloring_active) {
-        # No custom color: Legend by Omics Type.
-        if (group_name %in% names(omics_name_map)) {
-          final_group_name <- omics_name_map[[group_name]]
-        } else {
-          final_group_name <- group_name # Fallback
-        }
-      } else if (!use_continuous_scale) {
-        # Custom color (Categorical): Legend by point_color_group.
-        final_group_name <- group_name
-      } else {
-        # Continuous color: No discrete legend.
-        final_group_name <- NULL
-      }
+      # 1. Remove Plotly's index (e.g., stripping the trailing ", 1" from a Plotly trace name)
+      # This handles both (Group,Index), 4 and (OmicsType), 4
+      clean_name <- gsub("\\s*,\\s*\\d+$", "", clean_name)
       
-      # Store the mapping
-      if (!is.null(final_group_name)) {
-        trace_to_legend_map[[group_name]] <- final_group_name
-      }
+      # 2. VITAL FIX: Remove any index that might have originated in the data itself.
+      # This targets the index *inside* the name, like (Fullterm,1) or (Epigenetic,1)
+      # The brackets are often part of the string when no variable is selected.
+      clean_name <- gsub(",\\d+([\\)]?)$", "\\1", clean_name)
       
-      # Apply point trace updates (same as before)
-      if (!is.null(final_group_name)) {
-        p_interactive$x$data[[i]]$name <- final_group_name
-        p_interactive$x$data[[i]]$legendgroup <- final_group_name
-        p_interactive$x$data[[i]]$showlegend <- TRUE
-      } else {
-        p_interactive$x$data[[i]]$showlegend <- FALSE
-      }
+      # Force name and legendgroup to be exactly the category
+      trace$name <- clean_name
+      trace$legendgroup <- clean_name
+      trace$showlegend <- !(clean_name %in% sapply(p_interactive$x$data[1:(i-1)], function(t) t$legendgroup))
+      
+      p_interactive$x$data[[i]] <- trace
     }
-  }
-  
-  # Step 5B: Second pass to find segment traces and link them to the correct group.
-  for (i in 2:length(p_interactive$x$data)) {
-    trace <- p_interactive$x$data[[i]]
-    is_segment_trace <- !is.null(trace$mode) && trace$mode == "lines"
     
-    if (is_segment_trace) {
-      # Segment traces inherit the trace name from the aesthetic used:
-      segment_internal_name <- trace$name
-      
-      # Find the final legend name this segment trace should be linked to
-      if (segment_internal_name %in% names(trace_to_legend_map)) {
-        linked_group_name <- trace_to_legend_map[[segment_internal_name]]
-        
-        # CRITICAL: Set the segment's legendgroup to match the point's
-        p_interactive$x$data[[i]]$legendgroup <- linked_group_name
-      }
-      
-      p_interactive$x$data[[i]]$showlegend <- FALSE # Segments should remain hidden from legend
+    # Segment traces: never show legend
+    if (!is.null(trace$mode) && grepl("lines", trace$mode)) {
+      trace$showlegend <- FALSE
+      p_interactive$x$data[[i]] <- trace
     }
-  }
+  }  
   
-  # 6. Use plotly::layout to set tick text colors individually
+  # --- Customize y-axis tick colors ---
   p_interactive <- plotly::layout(
     p_interactive,
     yaxis = list(
