@@ -5,6 +5,8 @@ metadataContingencyTableUI <- function(id) {
     # Title is dynamically set in the server
     uiOutput(ns("table_title_ui")),
     # Interactive table output
-    DT::dataTableOutput(ns("omics_count_table"))
+    DT::dataTableOutput(ns("omics_count_table")),
+    br(),
+    br() 
   )
 }

@@ -13,6 +13,9 @@ source("modules/metadata/metadata_timeline_plot_server.R")
 source("modules/metadata/metadata_contingency_table_ui.R")
 source("modules/metadata/metadata_contingency_table_server.R")
 
+source("modules/metadata/metadata_timepoint_stats_ui.R")
+source("modules/metadata/metadata_timepoint_stats_server.R")
+
 mainPageUI <- function(id) {
   ns <- NS(id)
   tagList(
@@ -30,8 +33,11 @@ mainPageUI <- function(id) {
                  # Calls the UI function for the multi-plot module
                  metadataTimelinePlotsUI(ns("timeline_plots")),
                  
+                 metadataTimepointStatsUI(ns("timepoint_stats_table")), # Updated ID
+                 
                  # CRUCIAL: The Contingency Table UI must be placed here, below the plot module UI
                  metadataContingencyTableUI(ns("contingency_table"))
+                
           )
         )
       ),
@@ -62,7 +68,15 @@ mainPageServer <- function(id, uploaded_reactive, omics_names_reactive) {
       omics_names_reactive = omics_names_reactive
     )
     
-    # 3. Render dynamic omics contingency table
+    # 3. Render dynamic omics timepoint statistics table
+    metadataTimepointStatsServer( # Updated function name
+      id = "timepoint_stats_table", # Updated ID
+      metadata_reactive = loaded_data$processed_data,
+      omics_names_reactive = omics_names_reactive,
+      group_col_reactive = timeline_module_outputs$group_col 
+    )
+    
+    # 4. Render dynamic omics contingency table
     # Pass the selected group column reactive from the timeline plot module
     metadataContingencyTableServer(
       id = "contingency_table",
@@ -71,7 +85,8 @@ mainPageServer <- function(id, uploaded_reactive, omics_names_reactive) {
       group_col_reactive = timeline_module_outputs$group_col 
     )
     
-    # 4. Render dynamic omics time overlap plot
+    
+    # 5. Render dynamic omics time overlap plot
     overlap_plot_reactive <- metadataTimeOverlapPlotsServer(
       id = "time_overlap_plots",
       metadata_reactive = loaded_data$processed_data,

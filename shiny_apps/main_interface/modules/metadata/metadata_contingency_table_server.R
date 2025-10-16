@@ -119,30 +119,24 @@ metadataContingencyTableServer <- function(id, metadata_reactive, omics_names_re
       }
     })
     
-    # Render interactive table
+    # Renders the interactive table
     output$omics_count_table <- DT::renderDataTable({
       data <- omics_count_table_data()
+      group_col_name <- selected_group_col() # Get the column name for the title
+      
       validate(
-        need(!is.null(selected_group_col()), "Select a 'Group' column to view the table."),
+        need(!is.null(group_col_name), "Select a 'Group' column to view the table."),
         need(!is.null(data) && nrow(data) > 0, "No subjects could be counted. Check metadata and omics files.")
       )
       
-      # Ensure numeric columns are integers
+      # Ensure numeric columns are integers (This is custom logic that must be preserved)
       data <- data %>%
-        # Use any_of here too if omics_names_reactive() is used to select columns for type conversion
         mutate(across(where(is.numeric), as.integer))
       
-      DT::datatable(
-        data,
-        rownames = FALSE,
-        extensions = c('Buttons', 'ColReorder', 'Scroller'),
-        filter = 'top',
-        options = list(
-          dom = 'Bfrtip',
-          buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),
-          pageLength = 10,
-          lengthMenu = c(5, 10, 20, 50)
-        )
+      # *** APPLY THE COMMON FUNCTION HERE ***
+      render_interactive_table(
+        df = data,
+        title = paste("Unique Subject Counts by Group:", group_col_name) # Use a dynamic title
       )
     })
     
