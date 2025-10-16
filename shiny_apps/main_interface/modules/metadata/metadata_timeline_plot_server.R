@@ -66,11 +66,25 @@ metadataTimelinePlotsServer <- function(id, metadata_reactive, omics_names_react
     
     # 2. Generate UI for Point Color dropdown
     output$point_color_column_ui <- renderUI({
-      timelineColorDropdownUI(
+      
+      # The dropdown UI
+      dropdown_ui <- timelineColorDropdownUI(
         session$ns, 
         "point_color_column", 
         "Secondary Variable", 
         point_color_cols() # Use expanded list
+      )
+      
+      # Text to inform the user about the quartile binning
+      help_text <- p(
+        em("(If you choose a variable that has more than 15 categories such as BMI or Age, it would automatically split into 4 quantiles for comparison)"),
+        style = "font-size: 0.85em; color: #555;"
+      )
+      
+      # Combine the dropdown and the help text
+      tagList(
+        dropdown_ui,
+        help_text
       )
     })
     
@@ -94,11 +108,15 @@ metadataTimelinePlotsServer <- function(id, metadata_reactive, omics_names_react
       strip_color_col <- group_col_reactive()
       point_color_col <- if (is.null(input$point_color_column) || input$point_color_column == "None") NULL else input$point_color_column
       
+      # NEW: Get selected palette, defaulting to "Set3"
+      selected_palette <- input$point_color_palette %||% "Set3"
+      
       generate_combined_timeline_plot(
         metadata = filtered_metadata_reactive(), 
         omics_cols = omics_names_reactive(),
         color_by_column = strip_color_col,        # Used for strip fill and y-axis color (Subject-Level)
-        point_color_by_column = point_color_col   # Used for point marker color (Timepoint-Level)
+        point_color_by_column = point_color_col,   # Used for point marker color (Timepoint-Level)
+        selected_point_palette = selected_palette
       )
     })
     

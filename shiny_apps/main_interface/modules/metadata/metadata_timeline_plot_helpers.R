@@ -12,7 +12,11 @@ source("modules/metadata/metadata_timeline_data_prep.R")
 source("modules/metadata/metadata_timeline_plot_geom.R")
 
 # Combined plot for all omics using facets
-generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_column = NULL, point_color_by_column = NULL) {
+generate_combined_timeline_plot <- function(metadata, omics_cols, 
+                                            color_by_column = NULL, 
+                                            point_color_by_column = NULL,
+                                            continuous_to_categorical_threshold = 15,
+                                            selected_point_palette = "Set1") {
   # Defensive checks
   if (is.null(metadata) || ncol(metadata) < 2) return(NULL)
   
@@ -45,17 +49,60 @@ generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_colum
   # --- 3.5 Setup Coloring for POINTS (Secondary Dropdown) and calculate ORDER early ---
   point_color_by_column_clean <- NULL
   secondary_group_order <- NULL
+  point_color_setup_is_numeric <- FALSE
   
   if (!is.null(point_color_by_column)) {
+    
+    # NEW BLOCK: Check for numeric data and apply quartile binning
+    point_col_data <- metadata %>% pull(!!sym(point_color_by_column))
+    point_col_unique_non_na <- point_col_data %>% unique() %>% na.omit()
+    
+    # Check if data is numeric and has many unique values (e.g., > threshold)
+    is_numeric_many_levels <- is.numeric(point_col_data) && length(point_col_unique_non_na) > continuous_to_categorical_threshold # USE NEW PARAMETER
+    
+    if (is_numeric_many_levels) {
+      # Use the qtile function to get cut points based on non-missing data
+      cut_points <- quantile(point_col_data, probs = seq(0, 1, 0.25), na.rm = TRUE)
+      
+      # Ensure unique cut points (important if many values are the same)
+      cut_points <- unique(cut_points)
+      
+      # If less than 2 intervals are possible, treat as is
+      if (length(cut_points) < 3) { # 3 unique points gives 2 intervals
+        is_numeric_many_levels <- FALSE # Revert to treating as original
+      } else {
+        # Create quartile groups
+        metadata <- metadata %>%
+          mutate(
+            # Apply cut function, creating a new column with factor labels
+            !!paste0(point_color_by_column, "_quartile") := cut(
+              !!sym(point_color_by_column), 
+              breaks = unique(cut_points), 
+              include.lowest = TRUE,
+              right = FALSE, 
+              dig.lab = 4  
+            )
+          )
+        # Update column name to use the newly created quartile column
+        point_color_by_column_actual <- paste0(point_color_by_column, "_quartile")
+        point_color_setup_is_numeric <- FALSE # Treat the *new* binned data as categorical for coloring
+      }
+    }
+    
+    # If not binned, use the original column name
+    if (!is_numeric_many_levels) {
+      point_color_by_column_actual <- point_color_by_column
+      # Use the same logic as strip_color to detect *actual* continuous data
+      point_color_setup_is_numeric <- FALSE 
+    }
     
     # FIX: Ensure only ONE point color group is selected per subject ID, 
     # even if the raw metadata has multiple timepoints/rows for that ID.
     id_to_point_group_raw <- metadata %>%
-      select(id = !!sym(id_col_name), point_color_group_raw = !!sym(point_color_by_column)) %>%
+      select(id = !!sym(id_col_name), point_color_group_raw = !!sym(point_color_by_column_actual)) %>% # Use actual column
       # Group by ID and summarise to a single value (e.g., the first non-NA value)
       group_by(id) %>%
       summarise(point_color_group_raw = first(na.omit(point_color_group_raw)), .groups = 'drop')
-    
     id_to_point_group <- id_to_point_group_raw %>%
       mutate(
         point_color_group_clean = as.character(point_color_group_raw),
@@ -210,7 +257,10 @@ generate_combined_timeline_plot <- function(metadata, omics_cols, color_by_colum
       select(-point_color_group_clean)
     
     # Create color palette for plotting
-    point_colors <- colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(group_order))
+    point_colors <- colorRampPalette(RColorBrewer::brewer.pal(
+      n = min(12, RColorBrewer::brewer.pal.info[selected_point_palette, "maxcolors"]), 
+      name = selected_point_palette # Use the new parameter here
+    ))(length(group_order))
     names(point_colors) <- group_order
     
     point_color_setup <- list(

@@ -4,6 +4,24 @@ metadataTimelinePlotsUI <- function(id) {
   ns <- NS(id)
   tagList(
     h3("Omics Timeline Plots (Faceted Comparison)"),
+    
+    # NEW: Color Palette Selection
+    fluidRow(
+      column(12,
+             selectInput(
+               ns("point_color_palette"),
+               "Point Color Palette (Categorical Data)",
+               choices = c(
+                 # Qualitative Palettes
+                 "Set3", "Set1", "Set2", "Pastel1", "Pastel2", "Dark2", "Accent", "Paired",
+                 # Divergent Palettes (Good for ordered categories)
+                 "Spectral", "RdYlBu", "PRGn", "BrBG", "PiYG", "PuOr"
+               ),
+               selected = "Set1"
+             )
+      )
+    ),
+    
     # Container for two side-by-side dropdowns
     fluidRow(
       column(6, 
@@ -23,7 +41,7 @@ metadataTimelinePlotsUI <- function(id) {
   )
 }
 
-# The generic UI that creates a single dropdown input
+# The generic UI that creates a single dropdown input (unchanged)
 timelineColorDropdownUI <- function(ns, inputId, label, choices) {
   selectInput(
     ns(inputId), 

@@ -1,31 +1,48 @@
+# sidebar.R - FINAL CORRECTED VERSION
+
 library(shiny)
 source("modules/upload_instructions/upload_instructions.R")
 source("modules/metadata/metadata_server.R")
 source("modules/omics/omics_server.R")
 source("modules/omics_name/omics_name_file_upload_server.R")
+source("modules/notepad/notepad_server.R")
+source("modules/screenshot/screenshot_server.R")
+
+styled_hr <- function() {
+  tags$hr(class = "sidebar-separator")
+}
 
 # -------------------------------
 # Combined File Upload Module
 # -------------------------------
-sidebarUI <- function(id) {
+sidebarUI <- function(id) { 
   ns <- NS(id)
   tagList(
-    # --- Description / sample downloads ---
-    descriptionSampleUI("desc1"),
-    hr(),
     
-    omicsFileUploadUI(ns("omics_submit_A")),
-    hr(),
+    # --- SCREENSHOT INTEGRATION ---
+    screenshotButtonUI(ns("screenshot")), # <<< ADD THE BUTTON HERE
+    styled_hr(),
+    
+    # --- NOTEPAD INTEGRATION ---
+    h3("Project Notes 📝"),            
+    notepadUI(ns("project_notes")),   
+    styled_hr(),                      # <<< USING STYLED SEPARATOR
+    
+    # --- Description / sample downloads ---
+    descriptionSampleUI("desc1"),     
+    styled_hr(),                      # <<< USING STYLED SEPARATOR
+    
+    omicsFileUploadUI(ns("omics_submit_A")), 
+    styled_hr(),                      # <<< USING STYLED SEPARATOR
     
     # --- Metadata upload (single file) ---
-    h4("Metadata Upload"),
-    metadataUI(ns("meta1")),
-    hr(),
+    h4("Metadata Upload"),           
+    metadataUI(ns("meta1")),         
+    styled_hr()                       # <<< USING STYLED SEPARATOR
     
     # --- Omics upload (modal, multiple files) ---
     #h4("Omics Files Upload"),
     #omicsModalUI(ns("omics1"))
-    # REMOVED: Global actionButton(ns("global_upload_btn"), ...)
   )
 }
 
@@ -49,15 +66,16 @@ sidebarServer <- function(id, save_dir = tempdir(),
       default_file_path = default_metadata_path
     )
     
-    # --- Omics upload server ---
-    #omics <- omicsModalServer("omics1", save_dir = save_dir)
+    # --- NOTEPAD SERVER ---
+    notepadServer("project_notes")
+    
+    # --- NEW: SCREENSHOT SERVER ---
+    screenshotServer("screenshot")
     
     # Return all reactive outputs
     return(list(
       metadata_file = metadata$file,
       metadata_preview = metadata$preview,
-      #omics_files = omics$files,
-      #omics_preview = omics$preview,
       omics_names = omics_names_reactive  
     ))
   })

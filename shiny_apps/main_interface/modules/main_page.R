@@ -1,4 +1,4 @@
-# main_page.R
+# main_page.R - FIXED
 
 library(shiny)
 
@@ -16,9 +16,15 @@ source("modules/metadata/metadata_contingency_table_server.R")
 source("modules/metadata/metadata_timepoint_stats_ui.R")
 source("modules/metadata/metadata_timepoint_stats_server.R")
 
-mainPageUI <- function(id) {
+# CRITICAL FIX: Add the notepad_ui_list argument to the function definition
+mainPageUI <- function(id, notepad_ui_list) { 
   ns <- NS(id)
   tagList(
+    
+    # FIX 2: Use the passed argument to render the notes container
+    # The original file incorrectly used the undefined variable 'np_ui'
+    #notepad_ui_list$notes_container, 
+    
     tabsetPanel(
       id = ns("main_tabs"),
       # tabPanel(
@@ -37,7 +43,7 @@ mainPageUI <- function(id) {
                  
                  # CRUCIAL: The Contingency Table UI must be placed here, below the plot module UI
                  metadataContingencyTableUI(ns("contingency_table"))
-                
+                 
           )
         )
       ),
