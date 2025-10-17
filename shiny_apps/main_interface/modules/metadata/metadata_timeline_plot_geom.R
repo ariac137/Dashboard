@@ -93,6 +93,22 @@ build_interactive_timeline_plot <- function(
     labs(x = time_col_name) +
     ggtitle("Omics Timeline Plots (Faceted Comparison - Interactive)")
   
+  # --- ADD AXIS LABELS AND TITLE ---
+  p <- p +
+    labs(
+      x = time_col_name,  # Uses the actual name of the time column (e.g., 'Week' or 'Time')
+      y = "Subject ID",
+      title = "Timeline of Omics Data Availability per Subject"
+    ) +
+    theme(
+      # Center the main plot title
+      plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+      # Ensure X-axis title is visible and styled
+      axis.title.x = element_text(size = 12, margin = margin(t = 10)), 
+      # Ensure Y-axis title is visible and styled
+      axis.title.y = element_text(size = 12, margin = margin(r = 10))
+    )
+  
   # After ggplotly conversion
   p_interactive <- plotly::ggplotly(p, tooltip = "text", originalData = FALSE)
   

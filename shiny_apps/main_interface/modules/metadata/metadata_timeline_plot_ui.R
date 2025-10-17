@@ -3,14 +3,14 @@
 metadataTimelinePlotsUI <- function(id) {
   ns <- NS(id)
   tagList(
-    h3("Omics Timeline Plots (Faceted Comparison)"),
+    h3("Omics Timeline Plots"),
     
     # NEW: Color Palette Selection
     fluidRow(
       column(12,
              selectInput(
                ns("point_color_palette"),
-               "Point Color Palette (Categorical Data)",
+               "Point Color Palette",
                choices = c(
                  # Qualitative Palettes
                  "Set3", "Set1", "Set2", "Pastel1", "Pastel2", "Dark2", "Accent", "Paired",

@@ -12,7 +12,11 @@ metadataTimepointStatsUI <- function(id) {
     hr(),
     h3("Omics Timepoint Statistics Table"),
     p("Summary of time points collected for each omics type (Count, Min, and Max)."),
-    # Output slot for the interactive DT table
-    DT::DTOutput(ns("omics_time_stats_table"))
+    
+    # FIX 1: Wrap output for centering
+    div(style = "width: 90%; margin: 0 auto;",
+        # Output slot for the interactive DT table
+        DT::DTOutput(ns("omics_time_stats_table"))
+    )
   )
 }

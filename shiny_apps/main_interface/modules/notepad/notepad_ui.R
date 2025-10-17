@@ -14,7 +14,12 @@ notepadUI <- function(id) {
   ns <- NS(id)
   tagList(
     # 1. Button to add a new note
-    actionButton(ns("add_note"), "➕ Add Note", class = "btn-primary"),
+    actionButton(
+      ns("add_note"),
+      label = "Add Note",
+      icon = icon("plus"),
+      class = "btn-primary"
+    ),
     
     # 2. The hidden 'actionButton' is completely removed here to eliminate the 
     #    "transparent window" that was appearing at the bottom of the page.

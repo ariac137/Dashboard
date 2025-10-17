@@ -32,6 +32,7 @@ render_interactive_table <- function(df, title = "Processed Data Table") {
     ),
     # Add options for a great user experience
     options = list(
+      columnDefs = list(list(className = 'dt-center', targets = '_all')),
       
       # CRITICAL CHANGE: Show ALL entries at once
       pageLength = -1,  

@@ -10,7 +10,7 @@ screenshotButtonUI <- function(id) {
     # Use shinyjs for custom JavaScript and a button for triggering the screenshot
     # The 'screenshot_btn' ID will be targeted by the server-side logic
     actionButton(ns("screenshot_btn"), 
-                 label = "Full Screenshot 📸", 
+                 label = "Full Screenshot", 
                  icon = icon("camera-retro")),
     # Add a custom class for styling (e.g., placing it in the sidebar)
     tags$script(HTML("

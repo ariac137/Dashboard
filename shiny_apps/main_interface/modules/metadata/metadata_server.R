@@ -10,7 +10,29 @@ metadataServer <- function(id, save_dir = tempdir(), rdata_prefix = "metadata",
                            default_file_path = NULL) {
   moduleServer(id, function(input, output, session) {
     rv <- reactiveValues(file = NULL)
-    
+    TEMPLATE_FILE_PATH <- file.path("data", "metadata_template.csv")
+    # --- MODIFIED: Download Template Handler ---
+    output$download_template <- downloadHandler(
+      filename = function() {
+        # CRUCIAL: Ensure the filename has the .csv extension
+        return("metadata_template.csv") 
+      },
+      content = function(file) {
+        # IMPORTANT: Use showNotification for errors instead of stop() inside downloadHandler,
+        # as stop() can sometimes trigger the blank HTML download.
+        
+        if (!file.exists(TEMPLATE_FILE_PATH)) {
+          showNotification(paste("Error: Template file not found at:", TEMPLATE_FILE_PATH), type = "error", duration = 8)
+          # Explicitly return to prevent partial content from being sent
+          return(NULL) 
+        }
+        
+        # Copy the existing template file directly to the download path
+        # This is the correct method for serving a static file.
+        file.copy(TEMPLATE_FILE_PATH, file)
+      },
+      contentType = "text/csv"
+    )
     # --- NEW: Default File Loading on Startup ---
     # This logic assumes the default file is already processed or 
     # can be processed in a similar flow to an uploaded file.

@@ -20,25 +20,23 @@ sidebarUI <- function(id) {
   tagList(
     
     # --- SCREENSHOT INTEGRATION ---
-    screenshotButtonUI(ns("screenshot")), # <<< ADD THE BUTTON HERE
-    styled_hr(),
+    screenshotButtonUI(ns("screenshot")),
     
     # --- NOTEPAD INTEGRATION ---
-    h3("Project Notes 📝"),            
     notepadUI(ns("project_notes")),   
-    styled_hr(),                      # <<< USING STYLED SEPARATOR
+    styled_hr(),                 
     
     # --- Description / sample downloads ---
-    descriptionSampleUI("desc1"),     
-    styled_hr(),                      # <<< USING STYLED SEPARATOR
+    # descriptionSampleUI("desc1"),     
+    # styled_hr(),                     
     
     omicsFileUploadUI(ns("omics_submit_A")), 
-    styled_hr(),                      # <<< USING STYLED SEPARATOR
+    styled_hr(),                      
     
     # --- Metadata upload (single file) ---
-    h4("Metadata Upload"),           
+    h4("Upload Metadata"),           
     metadataUI(ns("meta1")),         
-    styled_hr()                       # <<< USING STYLED SEPARATOR
+    # styled_hr()                    
     
     # --- Omics upload (modal, multiple files) ---
     #h4("Omics Files Upload"),
