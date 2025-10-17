@@ -10,45 +10,39 @@ metadataTimelinePlotsServer <- function(id, metadata_reactive, omics_names_react
     id_col_name <- reactive({ names(metadata_reactive())[1] })
     time_col_name <- reactive({ names(metadata_reactive())[2] })
     
-    # ... (strip_categorical_cols and point_color_cols remain the same) ...
-    strip_categorical_cols <- reactive({
+    subject_level_cols <- reactive({
       req(metadata_reactive())
       md <- metadata_reactive()
       
-      # Exclude ID, Timepoint, and Omics columns
-      exclude_cols <- c(id_col_name(), time_col_name(), omics_names_reactive())
-      
-      # Filter for columns that are NOT excluded and have between 2 and 15 unique non-NA values
-      valid_cols <- names(md) %>%
-        setdiff(exclude_cols) %>%
-        lapply(function(col) {
-          # Count unique non-NA values
-          n_unique <- md %>% pull(!!sym(col)) %>% unique() %>% na.omit() %>% length()
-          # LIMIT TO 15 for the strip color (first dropdown)
-          if (n_unique > 1 && n_unique <= 15) col else NULL
-        }) %>%
-        unlist()
-      
-      # Add "None" as the default selection option
-      c("None", valid_cols)
-    })
-    
-    point_color_cols <- reactive({
-      req(metadata_reactive())
-      md <- metadata_reactive()
+      id_col <- id_col_name()
       
       # Exclude ID, Timepoint, and Omics columns
-      exclude_cols <- c(id_col_name(), time_col_name(), omics_names_reactive())
+      exclude_cols <- c(id_col, time_col_name(), omics_names_reactive())
+      potential_cols <- names(md) %>% setdiff(exclude_cols)
       
-      # Filter for columns that are NOT excluded and have at least 2 unique non-NA values
-      valid_cols <- names(md) %>%
-        setdiff(exclude_cols) %>%
-        lapply(function(col) {
-          n_unique <- md %>% pull(!!sym(col)) %>% unique() %>% na.omit() %>% length()
-          # NO LIMIT on unique values (removes the <= 15 filter)
-          if (n_unique > 1) col else NULL
+      valid_cols <- potential_cols %>%
+        purrr::map_chr(function(col) {
+          
+          # 1. Check for Subject-Level Constancy (Value must not change over time for a subject)
+          is_constant_per_id <- md %>%
+            select(!!sym(id_col), !!sym(col)) %>%
+            group_by(!!sym(id_col)) %>%
+            # Check for unique, non-NA values. Max should be 1 across all IDs.
+            summarise(n_unique = n_distinct(!!sym(col), na.rm = TRUE), .groups = 'drop') %>%
+            pull(n_unique) %>%
+            max() <= 1
+          
+          # 2. Check for at least 2 unique values overall (to be useful for coloring)
+          n_unique_overall <- md %>% pull(!!sym(col)) %>% unique() %>% na.omit() %>% length()
+          
+          if (is_constant_per_id && n_unique_overall >= 2) {
+            return(col) 
+          } else {
+            return(NA_character_)
+          }
         }) %>%
-        unlist()
+        stats::na.omit() %>%
+        as.character()
       
       # Add "None" as the default selection option
       c("None", valid_cols)
@@ -60,7 +54,7 @@ metadataTimelinePlotsServer <- function(id, metadata_reactive, omics_names_react
         session$ns, 
         "strip_color_column", 
         "Primary Outcome", 
-        strip_categorical_cols() # Use limited list
+        subject_level_cols() # Use limited list
       )
     })
     
@@ -72,7 +66,7 @@ metadataTimelinePlotsServer <- function(id, metadata_reactive, omics_names_react
         session$ns, 
         "point_color_column", 
         "Secondary Variable", 
-        point_color_cols() # Use expanded list
+        subject_level_cols()
       )
       
       # Text to inform the user about the quartile binning

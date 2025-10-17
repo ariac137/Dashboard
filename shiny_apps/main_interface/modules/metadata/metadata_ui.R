@@ -5,8 +5,8 @@ library(shiny)
 metadataUI <- function(id) {
   ns <- NS(id)
   tagList(
-    p("Upload a metadata file with the first three columns in this order: Sample ID, Subject ID, Time (numeric or datetime)."),
-    p("For columns showing if data exists, use consistent values: 0/1, True/False, or Yes/No."),
+    p("First three columns should be in this order: Sample ID, Subject ID, Time (numeric or datetime)."),
+    p("For columns that show whether omics data exists, use 0/1, True/False, or Yes/No consistently."),
     
     downloadButton(
       outputId = ns("download_template"),
