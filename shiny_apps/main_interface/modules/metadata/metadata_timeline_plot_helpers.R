@@ -101,6 +101,7 @@ generate_combined_timeline_plot <- function(metadata, omics_cols,
     id_to_point_group_raw <- metadata %>%
       select(id = !!sym(id_col_name), point_color_group_raw = !!sym(point_color_by_column_actual)) %>% # Use actual column
       # Group by ID and summarise to a single value (e.g., the first non-NA value)
+      mutate(id = as.character(id)) %>%
       group_by(id) %>%
       summarise(point_color_group_raw = first(na.omit(point_color_group_raw)), .groups = 'drop')
     id_to_point_group <- id_to_point_group_raw %>%
@@ -157,6 +158,7 @@ generate_combined_timeline_plot <- function(metadata, omics_cols,
     # Map IDs to cleaned groups (Primary Group)
     id_to_group <- metadata %>%
       select(id = !!sym(id_col_name), !!sym(color_by_column)) %>%
+      mutate(id = as.character(id)) %>%
       distinct() %>%
       mutate(group_clean = ifelse(is_missing(!!sym(color_by_column)), "None", as.character(!!sym(color_by_column)))) %>%
       mutate(group_clean = gsub(",\\d+([\\)]?)$", "\\1", group_clean))

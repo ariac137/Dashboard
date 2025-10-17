@@ -46,7 +46,8 @@ sidebarUI <- function(id) {
 
 sidebarServer <- function(id, save_dir = tempdir(),
                           default_omics_names_path = NULL, 
-                          default_metadata_path = NULL)  {
+                          default_metadata_path = NULL,
+                          default_omics_names = NULL)  {
   moduleServer(id, function(input, output, session) {
     
     # --- Description server ---
@@ -54,7 +55,7 @@ sidebarServer <- function(id, save_dir = tempdir(),
     
     omics_names_reactive <- omicsFileUploadServer(
       "omics_submit_A", 
-      default_file_path = default_omics_names_path
+      default_names_vector = default_omics_names
     )
     
     # --- Metadata upload server ---

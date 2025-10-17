@@ -13,7 +13,8 @@ setup_plot_coloring <- function(metadata, id_col_name, id_order, color_by_column
   strip_data_base <- metadata %>%
     select(!!sym(id_col_name)) %>%
     distinct() %>%
-    rename(id = !!sym(id_col_name))
+    rename(id = !!sym(id_col_name)) %>%
+    mutate(id = as.character(id))
   
   # Check if a valid column is provided for coloring
   if (!is.null(color_by_column) && color_by_column %in% names(metadata)) {
@@ -48,13 +49,15 @@ setup_plot_coloring <- function(metadata, id_col_name, id_order, color_by_column
     color_data_strip <- metadata %>%
       select(!!sym(id_col_name), !!sym(color_by_column)) %>%
       rename(id = !!sym(id_col_name), color_group = !!sym(color_by_column)) %>%
+      mutate(id = as.character(id)) %>%
       # FIX: Group by ID, then take the FIRST NON-MISSING value for the subject-level strip color.
       group_by(id) %>%
       summarise(color_group = first(na.omit(color_group)), .groups = 'drop') %>% 
+      mutate(id = as.character(id)) %>% 
       mutate(color_group = factor(color_group))
     
     # 4. Determine the color vector for y-axis labels
-    y_axis_colors <- left_join(data.frame(id = id_order), color_data_strip, by = "id") %>%
+    y_axis_colors <- left_join(data.frame(id = as.character(id_order)), color_data_strip, by = "id") %>%
       pull(color_group) %>%
       as.character()
     
@@ -150,7 +153,7 @@ add_tooltip_text <- function(metadata_long_facetted_anchored, strip_data_base, c
     metadata_long_facetted_anchored <- metadata_long_facetted_anchored %>%
       left_join(strip_data_base %>% select(id, color_group), by = "id") %>%
       mutate(plot_tooltip_text = paste(
-        !!sym(id_col_name), "<br>",
+        id, "<br>",
         time_col_name, ":", Timepoint, "<br>",
         "Omics Type:", omics_type, "<br>",
         color_label, ":", color_group
@@ -158,7 +161,7 @@ add_tooltip_text <- function(metadata_long_facetted_anchored, strip_data_base, c
   } else {
     metadata_long_facetted_anchored <- metadata_long_facetted_anchored %>%
       mutate(plot_tooltip_text = paste(
-        !!sym(id_col_name), "<br>",
+        id, "<br>",
         time_col_name, ":", Timepoint, "<br>",
         "Omics Type:", omics_type
       ))
